@@ -1,4 +1,5 @@
 #include "record_button.h"
+#include "wave_panel.h"
 #include <iostream>
 #include <cstring>  // for memset
 #include "record.h"
@@ -74,7 +75,8 @@ void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
             {
                 mw->playButton->button->Enable(false);
                 wxCommandEvent event(myEVT_RECORD_STARTED);
-                //wxPostEvent(mw->playButton, event);
+                wxPostEvent(mw->playButton, event);
+                wxPostEvent(mw->wavePanel, event);
             }
             else
             {

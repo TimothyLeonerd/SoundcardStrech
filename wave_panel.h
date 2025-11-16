@@ -26,10 +26,14 @@ public:
 
 private:
     std::shared_ptr<AudioData> m_pData;
+    wxBitmap m_bmp;
+    int marker_position;
 
     // The paint event is where we draw the waveform
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
+    void OnRecordStarted(wxCommandEvent& event);
+    void InitPanelBmp();
 
     wxDECLARE_EVENT_TABLE();
 };

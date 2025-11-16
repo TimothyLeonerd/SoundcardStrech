@@ -1,10 +1,12 @@
 #include "wave_panel.h"
+#include "my_events.h"
 #include <algorithm>  // for std::min, etc.
 
 // Macro for event table
 wxBEGIN_EVENT_TABLE(WavePanel, wxPanel)
 EVT_PAINT(WavePanel::OnPaint)
-//EVT_SIZE(WavePanel::OnSize)
+EVT_SIZE(WavePanel::OnSize)
+EVT_COMMAND(wxID_ANY, myEVT_RECORD_STARTED, WavePanel::OnRecordStarted)
 wxEND_EVENT_TABLE()
 
 WavePanel::WavePanel(wxWindow* parent, std::shared_ptr<AudioData> pData)
@@ -15,96 +17,102 @@ WavePanel::WavePanel(wxWindow* parent, std::shared_ptr<AudioData> pData)
     // SetBackgroundStyle(wxBG_STYLE_PAINT);
 }
 
-void WavePanel::OnSize(wxSizeEvent& event) {
-    // Gets called when size changes. Dummy for the time being
+void WavePanel::OnSize(wxSizeEvent& event)
+{
+    InitPanelBmp();
+
+    m_pData->lastSampleIndex = 0;
+
+    // Trigger repaint with new size
+    Refresh(false);
+    event.Skip();  // let wxWidgets handle default behaviour as well
+}
+
+void WavePanel::OnRecordStarted(wxCommandEvent& event)
+{
+    InitPanelBmp();
+}
+
+void WavePanel::InitPanelBmp()
+{
+    const wxSize size = GetClientSize();
+    if (size.x <= 0 || size.y <= 0)
+        return;
+
+    // Create bitmap with correct DPI
+    m_bmp.CreateWithDIPSize(size, GetDPIScaleFactor());
+
+    // Make panel white again
+    wxMemoryDC memdc(m_bmp);
+    memdc.SetBrush(*wxWHITE_BRUSH);
+    memdc.SetPen(*wxWHITE_PEN);
+    memdc.DrawRectangle(0, 0, size.x, size.y);
+
+    marker_position = -1;
 }
 
 // The main drawing routine, called whenever wxWidgets must refresh the panel
 void WavePanel::OnPaint(wxPaintEvent& event)
 {   
-    // 1) Get current panel size
+    wxPaintDC dc(this);
+
     int width, height;
     GetClientSize(&width, &height);
 
-    wxBitmap bmp;
-    bmp.CreateWithDIPSize(GetClientSize(), GetDPIScaleFactor());
-    {
-        wxMemoryDC memdc(bmp);
+    if (!m_bmp.IsOk())
+        InitPanelBmp();
 
-        // Check if we have audio data
-        if (!m_pData || !m_pData->recorded) {
+    {
+        wxMemoryDC memdc(m_bmp);
+
+        // If no audio data
+        if (!m_pData || !m_pData->recorded)
+        {
             memdc.SetBrush(*wxWHITE_BRUSH);
             memdc.SetPen(*wxWHITE_PEN);
             memdc.DrawRectangle(0, 0, width, height);
 
-            // No data yet, just draw some text or do nothing
             memdc.SetTextForeground(*wxBLACK);
             memdc.DrawText("No audio recorded.", 10, 10);
-            return;
         }
-
-        // We want to display only the *recorded* portion.
-        // e.g., currentSampleIndex is min(currentSampleIndex, maxFrameIndex).
-        // (If user recorded 2 seconds of a 10 second buffer, currentSampleIndex=somevalue,
-        //  or if they've used the "stop early" logic, maxFrameIndex might
-        //  be set to currentSampleIndex after stopping.)
-        int currentSampleIndex = std::min(m_pData->currentSampleIndex, m_pData->maxFrameIndex);
-
-        if (currentSampleIndex <= 0) {
-            // There's a buffer, but 0 frames used
-            memdc.DrawText("No audio recorded yet.", 10, 10);
-            return;
-        }
-        else if (m_pData->lastSampleIndex == 0) {
-            memdc.SetBrush(*wxWHITE_BRUSH);
-            memdc.SetPen(*wxWHITE_PEN);
-            memdc.DrawRectangle(0, 0, width, height);
-        }
-
-        // 4) We'll draw the first channel only
-        SAMPLE* samples = m_pData->recorded;  // pointer to array
-        // Center line for amplitude=0 is halfway down the panel
-        float midY = height / 2.0f;
-
-        float lastX = (float)m_pData->lastSampleIndex * (width / (float)m_pData->maxFrameIndex);
-        float lastY = midY;
-
-        // Erase previous position marker
-        memdc.SetPen(*wxWHITE_PEN);
-        memdc.DrawLine((int)lastX + 1, (int)0, (int)lastX + 1, (int)height);
-
-        memdc.SetBrush(*wxWHITE_BRUSH);
-        memdc.SetPen(*wxWHITE_PEN);
-        memdc.DrawRectangle(0, 0, width, height);
-
-        for (int i = 0; i < currentSampleIndex; i++)
+        else
         {
-            // We only read the first channel
-            float sampleVal = samples[i * NUM_CHANNELS];
+            int currentSampleIndex = std::min(m_pData->currentSampleIndex, m_pData->maxFrameIndex);
 
-            // Map sampleVal from -1..+1 to vertical range
-            float y = midY - sampleVal * (height / 2.0f);
+            SAMPLE* samples = m_pData->recorded;
+            const float midY = height / 2.0f;
 
-            // Map i from 0..currentSampleIndex to 0..width
-            float x = (float)i * (width / (float)m_pData->maxFrameIndex);
+            float lastX = (float)m_pData->lastSampleIndex * (width / (float)m_pData->maxFrameIndex);
+            float lastY = midY;
 
-            // Draw new wav form
+            // Erase previous marker
+            if (marker_position >= 0) {
+                memdc.SetPen(*wxWHITE_PEN);
+                memdc.DrawLine(marker_position, 0, marker_position, height);
+            }
+
+            // draw waveform
             memdc.SetPen(*wxBLACK_PEN);
-            memdc.DrawLine((int)lastX, (int)lastY, (int)x, (int)y);
+            for (int i = m_pData->lastSampleIndex; i < currentSampleIndex; ++i)
+            {
+                float sampleVal = samples[i * NUM_CHANNELS];
+                float y = midY - sampleVal * (height / 2.0f);
+                float x = (float)i * (width / (float)m_pData->maxFrameIndex);
 
-            lastX = x;
-            lastY = y;
+                memdc.DrawLine((int)lastX, (int)lastY, (int)x, (int)y);
+                lastX = x;
+                lastY = y;
+            }
+
+            // draw new position marker
+            marker_position = lastX + 1;
+            memdc.SetPen(*wxBLUE_PEN);
+            memdc.DrawLine(marker_position, 0, marker_position, height);
+
+            m_pData->lastSampleIndex = currentSampleIndex;
         }
-
-#if 1
-        // Draw new position marker
-        memdc.SetPen(*wxBLUE_PEN);
-        memdc.DrawLine((int)lastX + 1, (int)0, (int)lastX + 1, (int)height);
-#endif
-
-        m_pData->lastSampleIndex = currentSampleIndex;
     }
 
-    wxPaintDC dc(this);
-    dc.DrawBitmap(bmp, wxPoint(0, 0));
+    // Draw buffer on screen
+    dc.DrawBitmap(m_bmp, 0, 0, false);
 }
