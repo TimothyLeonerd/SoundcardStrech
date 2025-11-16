@@ -141,7 +141,7 @@ void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
         err = Pa_StartStream(stream);
         if (err != paNoError) goto error;
 
-        m_timer.Start(50);
+        m_timer.Start(1);
 
         goto done;
 

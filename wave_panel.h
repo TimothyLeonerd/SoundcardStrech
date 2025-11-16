@@ -29,6 +29,7 @@ private:
 
     // The paint event is where we draw the waveform
     void OnPaint(wxPaintEvent& event);
+    void OnSize(wxSizeEvent& event);
 
     wxDECLARE_EVENT_TABLE();
 };
