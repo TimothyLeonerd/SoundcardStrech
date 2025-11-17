@@ -14,15 +14,13 @@ public:
     Play_Button* playButton;
     Record_Button* recordButton;
     WavePanel* wavePanel;
+    wxSlider* m_speedSlider = nullptr;
 
 private:
-    // We'll store references
-    std::shared_ptr<State> pState;
+    std::shared_ptr<State>     pState;
+    std::shared_ptr<AudioData> pData;
 
-    // We'll keep a pointer to the wave panel
-
-
-    // We'll handle a "record stopped" event here
     void OnRecordStopped(wxCommandEvent& event);
     void OnDrawScreen(wxCommandEvent& event);
+    void OnSpeedSlider(wxCommandEvent& event);
 };

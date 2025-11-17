@@ -11,4 +11,5 @@ public:
     State();
     states state;
     bool transition(states newState);
+    double timeRatio = 1.0;
 };

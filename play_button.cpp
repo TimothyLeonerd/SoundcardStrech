@@ -68,7 +68,16 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
             RubberBand::RubberBandStretcher::OptionProcessOffline  // Offline
         );
 
-        stretcher.setTimeRatio(2.0);
+        double ratio = 1.0;
+        if (pStateCpy) {
+            ratio = pStateCpy->timeRatio;
+        }
+
+        // Clamp to a sensible range just in case
+        if (ratio < 0.5) ratio = 0.5;
+        if (ratio > 2.0) ratio = 2.0;
+
+        stretcher.setTimeRatio(ratio);
 
         // 3) Prepare to pass entire recorded buffer as a single chunk
         //    i.e., one "study" pass, then one "process" pass, then retrieve.
