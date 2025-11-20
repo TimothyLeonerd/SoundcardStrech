@@ -53,8 +53,8 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
 {
     PaError err;
 
-    // If there's no recorded buffer or no frames, do nothing
-    if (!pDataCpy->recorded || pDataCpy->maxFrameIndex == 0) {
+    // If buffer allocated or no samples recorded
+    if (pDataCpy->totalSamplesRecorded == 0 || pDataCpy->maxSamplesBuffer == 0) {
         wxMessageBox("No recorded data to play!", "Info");
         return;
     }
@@ -81,7 +81,7 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
 
         // 3) Prepare to pass entire recorded buffer as a single chunk
         //    i.e., one "study" pass, then one "process" pass, then retrieve.
-        int frames = pDataCpy->maxFrameIndex; // how many frames we actually recorded
+        int frames = pDataCpy->totalSamplesRecorded; // how many frames we actually recorded
         int channels = NUM_CHANNELS;
 
         // Interleaved input => must "de-interleave" for Rubber Band's offline calls
@@ -118,20 +118,20 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
         }
 
         // read them
-        size_t got = stretcher.retrieve((float* const*)outPtrs.data(), available);
+        pDataCpy->totalSamplesRecorded = stretcher.retrieve((float* const*)outPtrs.data(), available);
 
         // 7) Re-interleave them back into pDataCpy->recorded
         //    so the existing callback can just play them
         //    We'll free the old pointer and allocate a new sized buffer
         free(pDataCpy->recorded);
-        pDataCpy->recorded = (SAMPLE*)malloc(got * channels * sizeof(SAMPLE));
+        pDataCpy->recorded = (SAMPLE*)malloc(pDataCpy->totalSamplesRecorded * channels * sizeof(SAMPLE));
         if (!pDataCpy->recorded) {
             wxMessageBox("Allocation failed for stretched buffer!", "Error");
             return;
         }
 
         // re-interleave
-        for (int f = 0; f < (int)got; f++) {
+        for (int f = 0; f < pDataCpy->totalSamplesRecorded; f++) {
             for (int c = 0; c < channels; c++) {
                 pDataCpy->recorded[f * channels + c] = outputPlanar[c][f];
             }
@@ -139,7 +139,6 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
 
         // update currentSampleIndex / maxFrameIndex
         pDataCpy->currentSampleIndex = 0;         // will start from beginning
-        pDataCpy->maxFrameIndex = (int)got;
     }
 
     // At this point, pDataCpy->recorded holds the new time-stretched data

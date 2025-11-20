@@ -87,7 +87,7 @@ void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
         
 
         /* Set parameters */
-        pDataCpy->maxFrameIndex = totalFrames = NUM_SECONDS * SAMPLE_RATE;
+        pDataCpy->maxSamplesBuffer = totalFrames = NUM_SECONDS * SAMPLE_RATE;
         pDataCpy->currentSampleIndex = 0;
         numSamples = totalFrames * NUM_CHANNELS;
         numBytes = numSamples * sizeof(SAMPLE);
@@ -178,7 +178,7 @@ void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
             else {
                 // We only recorded up to pDataCpy->currentSampleIndex
                 // Adjust maxFrameIndex so playback doesn’t exceed that
-                pDataCpy->maxFrameIndex = pDataCpy->currentSampleIndex;
+                pDataCpy->totalSamplesRecorded = pDataCpy->currentSampleIndex;
             }
             stream = nullptr;
         }

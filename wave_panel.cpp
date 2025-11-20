@@ -77,12 +77,12 @@ void WavePanel::OnPaint(wxPaintEvent& event)
         }
         else
         {
-            int currentSampleIndex = std::min(m_pData->currentSampleIndex, m_pData->maxFrameIndex);
+            int currentSampleIndex = std::min(m_pData->currentSampleIndex, m_pData->maxSamplesBuffer);
 
             SAMPLE* samples = m_pData->recorded;
             const float midY = height / 2.0f;
 
-            float lastX = (float)m_pData->lastSampleIndex * (width / (float)m_pData->maxFrameIndex);
+            float lastX = (float)m_pData->lastSampleIndex * (width / (float)m_pData->maxSamplesBuffer);
             float lastY = midY;
 
             // Erase previous marker
@@ -97,7 +97,7 @@ void WavePanel::OnPaint(wxPaintEvent& event)
             {
                 float sampleVal = samples[i * NUM_CHANNELS];
                 float y = midY - sampleVal * (height / 2.0f);
-                float x = (float)i * (width / (float)m_pData->maxFrameIndex);
+                float x = (float)i * (width / (float)m_pData->maxSamplesBuffer);
 
                 memdc.DrawLine((int)lastX, (int)lastY, (int)x, (int)y);
                 lastX = x;

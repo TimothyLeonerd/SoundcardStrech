@@ -10,7 +10,7 @@
 /* #define SAMPLE_RATE  (17932) // Test failure to open with this value. */
 #define SAMPLE_RATE  (44100)
 #define FRAMES_PER_BUFFER (512)
-#define NUM_SECONDS     (10)
+#define NUM_SECONDS     (100)
 #define NUM_CHANNELS    (2)
 /* #define DITHER_FLAG     (paDitherOff) */
 #define DITHER_FLAG     (0) /**/
@@ -44,6 +44,7 @@ typedef unsigned char SAMPLE;
 struct AudioData {
     int lastSampleIndex = 0;
     int currentSampleIndex = 0;        // current read/write sample
-    int maxFrameIndex = 0;     // total frames recorded / to play
+    int totalSamplesRecorded = 0;      // total samples recorded
+    int maxSamplesBuffer = 0;
     float* recorded = nullptr; // interleaved [frames * channels]
 };

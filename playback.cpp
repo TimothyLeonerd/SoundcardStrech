@@ -11,7 +11,7 @@ int playCallback(const void* inputBuffer, void* outputBuffer,
     SAMPLE* wptr = (SAMPLE*)outputBuffer;
     unsigned int i;
     int finished;
-    unsigned int framesLeft = data->maxFrameIndex - data->currentSampleIndex;
+    unsigned int framesLeft = data->totalSamplesRecorded - data->currentSampleIndex;
 
     (void)inputBuffer; /* Prevent unused variable warnings. */
     (void)timeInfo;

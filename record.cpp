@@ -20,7 +20,7 @@ int recordCallback(
     long framesToCalc;
     long i;
     int finished;
-    unsigned long framesLeft = data->maxFrameIndex - data->currentSampleIndex;
+    unsigned long framesLeft = data->maxSamplesBuffer - data->currentSampleIndex;
 
     (void)outputBuffer; /* Prevent unused variable warnings. */
     (void)timeInfo;
