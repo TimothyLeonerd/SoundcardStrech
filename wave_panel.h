@@ -15,7 +15,7 @@ public:
      *  Constructor: parent is a wxWindow (like a wxPanel or wxFrame) 
      *  pData is the shared_ptr that holds your recorded. 
      */
-    WavePanel(wxWindow* parent, std::shared_ptr<AudioData> pData);
+    WavePanel(wxWindow* parent, std::shared_ptr<AudioData> pData, std::shared_ptr<State> pState);
 
     /**
      * If you want to reassign the AudioData after creation,
@@ -26,6 +26,7 @@ public:
 
 private:
     std::shared_ptr<AudioData> m_pData;
+    std::shared_ptr<State>     pStateCpy;
     wxBitmap m_bmp;
     int marker_position;
 
@@ -33,7 +34,13 @@ private:
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
     void OnRecordStarted(wxCommandEvent& event);
+    void OnRecordStopped(wxCommandEvent& event);
+    void OnPlayStarted(wxCommandEvent& event);
+    void OnPlayStopped(wxCommandEvent& event);
     void InitPanelBmp();
+
+    wxTimer m_redrawTimer;
+    void OnRedrawTimer(wxTimerEvent& evt);
 
     wxDECLARE_EVENT_TABLE();
 };

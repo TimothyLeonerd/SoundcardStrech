@@ -19,7 +19,7 @@ MainWindow::MainWindow(const wxString& title) : wxFrame(NULL, wxID_ANY, title, w
     playButton     = new Play_Button(panel, pState, pData);
 
     // Create the wave panel
-    wavePanel = new WavePanel(panel, pData);
+    wavePanel = new WavePanel(panel, pData, pState);
     
     m_speedSlider = new wxSlider(
         panel,
@@ -63,23 +63,13 @@ MainWindow::MainWindow(const wxString& title) : wxFrame(NULL, wxID_ANY, title, w
 // Called every time onTimer is called
 void MainWindow::OnDrawScreen(wxCommandEvent& event)
 {
-    if (wavePanel)
-    {
-        wavePanel->Refresh(false);
-    }
+    // Do nothing
 }
 
 // Called when Record_Button posts the "stop" event
 void MainWindow::OnRecordStopped(wxCommandEvent& event)
 {
-    // Just refresh the wave panel
-    // So it redraws and displays the newly recorded data
-    //wxMessageBox("OnRecordStopped was called!", "Debug");
-
-    if (wavePanel)
-    {
-        wavePanel->Refresh(false);
-    }
+    // Do nothing
 }
 
 void MainWindow::OnSpeedSlider(wxCommandEvent& WXUNUSED(event))
@@ -87,13 +77,14 @@ void MainWindow::OnSpeedSlider(wxCommandEvent& WXUNUSED(event))
     if (!m_speedSlider || !pState) return;
 
     int value = m_speedSlider->GetValue();  // 500..2000
-    double ratio = 1000.0 / static_cast<double>(value);  // inverse of speed
+    double speed = static_cast<double>(value) / 1000.0;
+    double ratio = 1.0 / speed;  // inverse of speed
 
     pState->timeRatio = ratio;
     // or pState->SetTimeRatio(ratio);
 
     // Optional: keep tooltip synced
     wxString tip;
-    tip.Printf("Playback speed: %.2fx", ratio);
+    tip.Printf("Playback speed: %.2fx", speed);
     m_speedSlider->SetToolTip(tip);
 }

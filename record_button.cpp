@@ -204,7 +204,7 @@ void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
     }
 }
 
-// NEW: Timer event handler that checks if the stream is still active
+// Timer event handler that checks if the stream is still active
 void Record_Button::OnTimer(wxTimerEvent& WXUNUSED(event))
 {
     if (!stream) return; // Safety check in case stream is null
@@ -244,23 +244,5 @@ void Record_Button::OnTimer(wxTimerEvent& WXUNUSED(event))
         button->SetBitmap(recordBundle);
         button->SetToolTip("Record");
         pStateCpy->transition(Idle);
-    }
-    else
-    {
-        wxWindow* top = wxGetTopLevelParent(this);
-        if (top)
-        {
-            MainWindow* mw = dynamic_cast<MainWindow*>(top);
-            if (mw)
-            {
-                wxCommandEvent event(myEVT_DRAW_SCREEN);
-                wxPostEvent(mw, event);
-            }
-            else
-            {
-                // not actually MainWindow
-                wxMessageBox("top is not a MainWindow");
-            }
-        }
     }
 }

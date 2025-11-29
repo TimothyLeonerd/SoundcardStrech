@@ -4,6 +4,10 @@
 // Declare custom events
 wxDECLARE_EVENT(myEVT_RECORD_STARTED, wxCommandEvent);
 wxDECLARE_EVENT(myEVT_RECORD_STOPPED, wxCommandEvent);
+
+wxDECLARE_EVENT(myEVT_PLAY_STARTED, wxCommandEvent);
+wxDECLARE_EVENT(myEVT_PLAY_STOPPED, wxCommandEvent);
+
 wxDECLARE_EVENT(myEVT_DRAW_SCREEN, wxCommandEvent);
 
 // Define custom id

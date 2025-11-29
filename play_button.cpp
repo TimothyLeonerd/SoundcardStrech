@@ -5,6 +5,8 @@
 #include "portaudio.h"
 #include "state.h"
 #include "RubberBandStretcher.h"
+#include "main_window.h"
+#include "wave_panel.h"
 #include "my_events.h"
 
 wxBEGIN_EVENT_TABLE(Play_Button, wxPanel)
@@ -150,6 +152,21 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
     {
         // Switch to "Playing" state and label
         pStateCpy->transition(Playing);
+
+        // Notify WavePanel that playback started
+        wxWindow* top = wxGetTopLevelParent(this);
+        if (top)
+        {
+            if (auto mw = dynamic_cast<MainWindow*>(top))
+            {
+                if (mw->wavePanel)
+                {
+                    wxCommandEvent ev(myEVT_PLAY_STARTED);
+                    wxPostEvent(mw->wavePanel, ev);
+                }
+            }
+        }
+
         button->SetBitmap(pauseBundle);
         button->SetToolTip("Pause");
 
@@ -198,6 +215,21 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
         std::cerr << "Pa_OpenStream/Pa_StartStream error: "
             << Pa_GetErrorText(err) << std::endl;
         Pa_Terminate();
+        // Notify WavePanel that playback stopped
+        {
+            wxWindow* top = wxGetTopLevelParent(this);
+            if (top)
+            {
+                if (auto mw = dynamic_cast<MainWindow*>(top))
+                {
+                    if (mw->wavePanel)
+                    {
+                        wxCommandEvent evStop(myEVT_PLAY_STOPPED);
+                        wxPostEvent(mw->wavePanel, evStop);
+                    }
+                }
+            }
+        }
         pStateCpy->transition(Idle);
         button->SetBitmap(playBundle);
         button->SetToolTip("Play");
@@ -208,6 +240,21 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
         pStateCpy->transition(Idle);
         button->SetBitmap(playBundle);
         button->SetToolTip("Play");
+        // Notify WavePanel that playback stopped
+        {
+            wxWindow* top = wxGetTopLevelParent(this);
+            if (top)
+            {
+                if (auto mw = dynamic_cast<MainWindow*>(top))
+                {
+                    if (mw->wavePanel)
+                    {
+                        wxCommandEvent evStop(myEVT_PLAY_STOPPED);
+                        wxPostEvent(mw->wavePanel, evStop);
+                    }
+                }
+            }
+        }
         m_timer.Stop();
         if (stream) {
             err = Pa_CloseStream(stream);
@@ -240,6 +287,22 @@ void Play_Button::OnTimer(wxTimerEvent& WXUNUSED(event))
         Pa_Terminate();
         stream = nullptr;
 
+        // Notify WavePanel that playback stopped
+        {
+            wxWindow* top = wxGetTopLevelParent(this);
+            if (top)
+            {
+                if (auto mw = dynamic_cast<MainWindow*>(top))
+                {
+                    if (mw->wavePanel)
+                    {
+                        wxCommandEvent evStop(myEVT_PLAY_STOPPED);
+                        wxPostEvent(mw->wavePanel, evStop);
+                    }
+                }
+            }
+        }
+
         pStateCpy->transition(Idle);
         button->SetBitmap(playBundle);
         button->SetToolTip("Play");
@@ -254,6 +317,22 @@ void Play_Button::OnTimer(wxTimerEvent& WXUNUSED(event))
         PaError err = Pa_CloseStream(stream);
         stream = nullptr;
         Pa_Terminate();
+
+        // Notify WavePanel that playback stopped
+        {
+            wxWindow* top = wxGetTopLevelParent(this);
+            if (top)
+            {
+                if (auto mw = dynamic_cast<MainWindow*>(top))
+                {
+                    if (mw->wavePanel)
+                    {
+                        wxCommandEvent evStop(myEVT_PLAY_STOPPED);
+                        wxPostEvent(mw->wavePanel, evStop);
+                    }
+                }
+            }
+        }
 
         pStateCpy->transition(Idle);
         button->SetBitmap(playBundle);
