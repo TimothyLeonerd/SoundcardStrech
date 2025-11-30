@@ -125,6 +125,6 @@ PaError AudioRecorder::stop()
         audioData->stream = nullptr;
     }
 
-    Pa_Terminate();
+    err = Pa_Terminate();
     return err;
 }

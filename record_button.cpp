@@ -69,6 +69,27 @@ void Record_Button::updateGuiRecordStarted() {
     }
 }
 
+void Record_Button::updateGuiRecordStopped() {
+    button->SetBitmap(recordBundle);
+    button->SetToolTip("Record");
+    wxWindow* top = wxGetTopLevelParent(this);
+    if (top)
+    {
+        MainWindow* mw = dynamic_cast<MainWindow*>(top);
+        if (mw)
+        {
+            mw->playButton->button->Enable(true);
+            wxCommandEvent e(myEVT_RECORD_STOPPED);
+            wxPostEvent(mw, e);
+        }
+        else
+        {
+            // not actually MainWindow
+            wxMessageBox("top is not a MainWindow");
+        }
+    }
+}
+
 PaDeviceIndex Record_Button::findLoopbackDecive() {
     PaDeviceIndex loopbackDevice_idx = paNoDevice;
 
@@ -104,51 +125,21 @@ void Record_Button::OnRecord(wxCommandEvent& e)
             updateGuiRecordStarted();
         }
         else {
-            std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
+            std::cerr << "PortAudio error on start record: " << Pa_GetErrorText(err) << std::endl;
         }
     }
     // If currently Recording, user pressed "Record" again -> Stop recording early
     else if (pStateCpy->state == Recording)
     {
-        button->SetBitmap(recordBundle);
-        button->SetToolTip("Record");
-        pStateCpy->transition(Idle);
-
-        // Stop checking (no need to poll once user stops)
-        m_timer.Stop();
-
-        // Close the stream
-        if (pAudioData->stream) {
-            PaError err = Pa_CloseStream(pAudioData->stream);
-            if (err != paNoError) {
-                std::cerr << "Pa_CloseStream error: " << Pa_GetErrorText(err) << std::endl;
-            }
-            else {
-                // We only recorded up to pAudioData->currentSampleIndex
-                // Adjust maxFrameIndex so playback doesn’t exceed that
-                pAudioData->totalSamplesRecorded = pAudioData->currentSampleIndex;
-            }
-            pAudioData->stream = nullptr;
+        PaError err = recorder->stop();
+        if (err == paNoError) {
+            m_timer.Stop();
+            pStateCpy->transition(Idle);
+            updateGuiRecordStopped();
         }
-        Pa_Terminate();
-
-        wxWindow* top = wxGetTopLevelParent(this);
-        if (top)
-        {
-            MainWindow* mw = dynamic_cast<MainWindow*>(top);
-            if (mw)
-            {
-                mw->playButton->button->Enable(true);
-                wxCommandEvent e(myEVT_RECORD_STOPPED);
-                wxPostEvent(mw, e);
-            }
-            else
-            {
-                // not actually MainWindow
-                wxMessageBox("top is not a MainWindow");
-            }
+        else {
+            std::cerr << "PortAudio error on stop record: " << Pa_GetErrorText(err) << std::endl;
         }
-
     }
 }
 

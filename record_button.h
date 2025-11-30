@@ -34,5 +34,6 @@ private:
 
     // helper functions
     void updateGuiRecordStarted();
+    void updateGuiRecordStopped();
     PaDeviceIndex findLoopbackDecive();
 };
