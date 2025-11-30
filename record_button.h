@@ -4,6 +4,7 @@
 #include <wx/timer.h>
 #include <wx/wx.h>
 #include "portaudio.h"
+#include "audio_recorder.h"
 
 class Record_Button : public wxPanel
 {
@@ -20,6 +21,7 @@ public:
 private:
     std::shared_ptr<State> pStateCpy;
     std::shared_ptr<AudioData> pAudioData;
+    std::unique_ptr<AudioRecorder> recorder;
 
     // We'll use a wxTimer to periodically check if the stream is done recording
     wxTimer m_timer;
