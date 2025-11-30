@@ -93,7 +93,6 @@ PaDeviceIndex Record_Button::findLoopbackDecive() {
 // The same existing OnRecord(...) but with added timer logic
 void Record_Button::OnRecord(wxCommandEvent& e)
 {
-    PaError err = paNoError;
     int n_devices, idx_output_device;
     std::string output_device_name;
     std::vector<const PaDeviceInfo*> all_devices;
@@ -106,54 +105,63 @@ void Record_Button::OnRecord(wxCommandEvent& e)
     // If currently Idle, user pressed "Record" -> Start recording
     if (pStateCpy->state == Idle)
     {
+        PaError err = paNoError;
+        bool hasError = false;
+
         pStateCpy->transition(Recording);
         updateGuiRecordStarted();
 
-        err = Pa_Initialize();
-        if (err != paNoError) goto error;
+        if ((err = Pa_Initialize()) != paNoError)
+            hasError = true;
 
-        inputParameters.device = findLoopbackDecive();
-        
-        if (inputParameters.device == paNoDevice) {
-            std::cerr << "Error: No default input device.\n";
-            goto error;
+        if (!hasError) {
+            inputParameters.device = findLoopbackDecive();
+
+            if (inputParameters.device == paNoDevice) {
+                err = paDeviceUnavailable;
+                hasError = true;
+            }
         }
-        inputParameters.channelCount = NUM_CHANNELS;
-        inputParameters.sampleFormat = PA_SAMPLE_TYPE;
-        inputParameters.suggestedLatency =
-            Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
-        inputParameters.hostApiSpecificStreamInfo = NULL;
+        if (!hasError) {
+            inputParameters.channelCount = NUM_CHANNELS;
+            inputParameters.sampleFormat = PA_SAMPLE_TYPE;
+            inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
+            inputParameters.hostApiSpecificStreamInfo = NULL;
 
-        err = Pa_OpenStream(
-            &pAudioData->stream,
-            &inputParameters,
-            NULL,  /* no output device */
-            Pa_GetDeviceInfo(inputParameters.device)->defaultSampleRate,
-            FRAMES_PER_BUFFER,
-            paClipOff,
-            recordCallback,
-            pAudioData.get()
-        );
-        if (err != paNoError) goto error;
-
-        err = Pa_StartStream(pAudioData->stream);
-        if (err != paNoError) goto error;
-
-        m_timer.Start(1);
-
-        goto done;
-
-    error:
-        Pa_Terminate();
-        if (err != paNoError)
-        {
-            std::cerr << "An error occurred while using the portaudio stream\n"
-                << "Error number: " << err << "\n"
-                << "Error message: " << Pa_GetErrorText(err) << std::endl;
-            err = 1;
+            err = Pa_OpenStream(
+                &pAudioData->stream,
+                &inputParameters,
+                NULL,  /* no output device */
+                Pa_GetDeviceInfo(inputParameters.device)->defaultSampleRate,
+                FRAMES_PER_BUFFER,
+                paClipOff,
+                recordCallback,
+                pAudioData.get());
+            if (err != paNoError) {
+                hasError = true;
+            }
         }
-    done:
-        ;
+
+        if (!hasError) {
+            err = Pa_StartStream(pAudioData->stream);
+            if (err != paNoError) {
+                hasError = true;
+            }
+        }
+
+        if (!hasError) {
+            m_timer.Start(1);
+        }
+        else {
+            Pa_Terminate();
+            if (err != paNoError)
+            {
+                std::cerr << "An error occurred while using the portaudio stream\n"
+                    << "Error number: " << err << "\n"
+                    << "Error message: " << Pa_GetErrorText(err) << std::endl;
+                err = 1;
+            }
+        }
     }
     // If currently Recording, user pressed "Record" again -> Stop recording early
     else if (pStateCpy->state == Recording)
