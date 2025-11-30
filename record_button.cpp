@@ -20,7 +20,6 @@ Record_Button::Record_Button(
     : wxPanel(parent, wxID_ANY),
     pStateCpy(pState),
     pAudioData(pData),
-    stream(nullptr),
     m_timer(this) // Timer constructed with 'this' as the owner
 {
     const int ID_RECORD_BUTTON = wxNewId();
@@ -73,9 +72,6 @@ void Record_Button::updateGuiRecordStarted() {
 void Record_Button::OnRecord(wxCommandEvent& e)
 {
     PaError err = paNoError;
-    int totalFrames;
-    int numSamples;
-    int numBytes;
     int n_devices, idx_output_device;
     std::string output_device_name;
     std::vector<const PaDeviceInfo*> all_devices;
@@ -90,21 +86,6 @@ void Record_Button::OnRecord(wxCommandEvent& e)
     {
         pStateCpy->transition(Recording);
         updateGuiRecordStarted();
-        
-        /* Set parameters */
-        pAudioData->maxSamplesBuffer = totalFrames = NUM_SECONDS * SAMPLE_RATE;
-        pAudioData->currentSampleIndex = 0;
-        numSamples = totalFrames * NUM_CHANNELS;
-        numBytes = numSamples * sizeof(SAMPLE);
-
-        /* Init recorded samples buffer */
-        pAudioData->recorded = (SAMPLE*)std::malloc(numBytes);
-        if (pAudioData->recorded == NULL)
-        {
-            std::cerr << "Could not allocate record array.\n";
-            goto error;
-        }
-        std::memset(pAudioData->recorded, 0, numBytes);
 
         err = Pa_Initialize();
         if (err != paNoError) goto error;
@@ -134,7 +115,7 @@ void Record_Button::OnRecord(wxCommandEvent& e)
         inputParameters.hostApiSpecificStreamInfo = NULL;
 
         err = Pa_OpenStream(
-            &stream,
+            &pAudioData->stream,
             &inputParameters,
             NULL,  /* no output device */
             Pa_GetDeviceInfo(inputParameters.device)->defaultSampleRate,
@@ -145,7 +126,7 @@ void Record_Button::OnRecord(wxCommandEvent& e)
         );
         if (err != paNoError) goto error;
 
-        err = Pa_StartStream(stream);
+        err = Pa_StartStream(pAudioData->stream);
         if (err != paNoError) goto error;
 
         m_timer.Start(1);
@@ -175,8 +156,8 @@ void Record_Button::OnRecord(wxCommandEvent& e)
         m_timer.Stop();
 
         // Close the stream
-        if (stream) {
-            PaError err = Pa_CloseStream(stream);
+        if (pAudioData->stream) {
+            PaError err = Pa_CloseStream(pAudioData->stream);
             if (err != paNoError) {
                 std::cerr << "Pa_CloseStream error: " << Pa_GetErrorText(err) << std::endl;
             }
@@ -185,7 +166,7 @@ void Record_Button::OnRecord(wxCommandEvent& e)
                 // Adjust maxFrameIndex so playback doesn’t exceed that
                 pAudioData->totalSamplesRecorded = pAudioData->currentSampleIndex;
             }
-            stream = nullptr;
+            pAudioData->stream = nullptr;
         }
         Pa_Terminate();
 
@@ -212,10 +193,10 @@ void Record_Button::OnRecord(wxCommandEvent& e)
 // Timer event handler that checks if the stream is still active
 void Record_Button::OnTimer(wxTimerEvent& WXUNUSED(event))
 {
-    if (!stream) return; // Safety check in case stream is null
+    if (!pAudioData->stream) return; // Safety check in case stream is null
 
     PaError err;
-    int active = Pa_IsStreamActive(stream);
+    int active = Pa_IsStreamActive(pAudioData->stream);
     if (active == 0)
     {
         // The callback signaled paComplete => buffer is full or done
@@ -223,12 +204,12 @@ void Record_Button::OnTimer(wxTimerEvent& WXUNUSED(event))
         m_timer.Stop();
 
         // Close the stream
-        err = Pa_CloseStream(stream);
+        err = Pa_CloseStream(pAudioData->stream);
         if (err != paNoError) {
             std::cerr << "Pa_CloseStream error: "
                 << Pa_GetErrorText(err) << std::endl;
         }
-        stream = nullptr;
+        pAudioData->stream = nullptr;
 
         Pa_Terminate();
 
@@ -243,8 +224,8 @@ void Record_Button::OnTimer(wxTimerEvent& WXUNUSED(event))
         std::cerr << "Stream error: " << Pa_GetErrorText(active) << std::endl;
         // Also stop timer, close stream, revert to idle
         m_timer.Stop();
-        err = Pa_CloseStream(stream);
-        stream = nullptr;
+        err = Pa_CloseStream(pAudioData->stream);
+        pAudioData->stream = nullptr;
         Pa_Terminate();
         button->SetBitmap(recordBundle);
         button->SetToolTip("Record");

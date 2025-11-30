@@ -20,8 +20,6 @@ private:
     std::shared_ptr<State> pStateCpy;
     std::shared_ptr<AudioData> pAudioData;
 
-    PaStream* stream;
-
     // We'll use a wxTimer to periodically check if the stream is done recording
     wxTimer m_timer;
 

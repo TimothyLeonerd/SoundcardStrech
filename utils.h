@@ -40,12 +40,14 @@ typedef unsigned char SAMPLE;
 #define PRINTF_S_FORMAT "%d"
 #endif
 
-// utils.h
 class AudioData {
 public:
-    int lastSampleIndex = 0;
-    int currentSampleIndex = 0;        // current read/write sample
-    int totalSamplesRecorded = 0;      // total samples recorded
-    int maxSamplesBuffer = 0;
-    float* recorded = nullptr; // interleaved [frames * channels]
+    int lastSampleIndex;
+    int currentSampleIndex;
+    int totalSamplesRecorded;
+    int maxSamplesBuffer;
+    float* recorded;
+    PaStream* stream;
+
+    AudioData();
 };

@@ -115,7 +115,7 @@ void WavePanel::OnPaint(wxPaintEvent& event)
             memdc.SetTextForeground(*wxBLACK);
             memdc.DrawText("No audio recorded.", 10, 10);
         }
-        else if (pStateCpy->state = Recording)
+        else if (pStateCpy->state == Recording)
         {
             int currentSampleIndex = std::min(m_pData->currentSampleIndex, m_pData->maxSamplesBuffer);
 
