@@ -3,6 +3,7 @@
 #include "utils.h"
 #include <wx/timer.h>
 #include <wx/wx.h>
+#include "portaudio.h"
 
 class Record_Button : public wxPanel
 {
@@ -31,4 +32,5 @@ private:
 
     // helper functions
     void updateGuiRecordStarted();
+    PaDeviceIndex findLoopbackDecive();
 };

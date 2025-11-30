@@ -68,6 +68,28 @@ void Record_Button::updateGuiRecordStarted() {
     }
 }
 
+PaDeviceIndex Record_Button::findLoopbackDecive() {
+    PaDeviceIndex loopbackDevice_idx = paNoDevice;
+
+    int n_devices = Pa_GetDeviceCount();
+    PaDeviceIndex idx_output_device = Pa_GetDefaultOutputDevice();
+    std::string output_device_name = Pa_GetDeviceInfo(idx_output_device)->name;
+
+    // For default output device, find corresponding [Loopback] channel
+    for (int i = 0; i < n_devices; ++i)
+    {
+        std::string current_device_name = Pa_GetDeviceInfo(i)->name;
+        if (current_device_name.find(output_device_name) != std::string::npos) {
+            if (current_device_name.find("[Loopback]") != std::string::npos) {
+                loopbackDevice_idx = i;
+                break;
+            }
+        }
+    }
+
+    return loopbackDevice_idx;
+}
+
 // The same existing OnRecord(...) but with added timer logic
 void Record_Button::OnRecord(wxCommandEvent& e)
 {
@@ -90,20 +112,8 @@ void Record_Button::OnRecord(wxCommandEvent& e)
         err = Pa_Initialize();
         if (err != paNoError) goto error;
 
-        n_devices = Pa_GetDeviceCount();
-        idx_output_device = Pa_GetDefaultOutputDevice();
-        output_device_name = Pa_GetDeviceInfo(idx_output_device)->name;
-
-        // For default output device, find corresponding [Loopback] channel
-        for (int i = 0; i < n_devices; ++i)
-        {
-            all_devices.push_back(Pa_GetDeviceInfo(i));
-            if (std::string(all_devices[i]->name).find(output_device_name) != std::string::npos) {
-                if (std::string(all_devices[i]->name).find(loopback_str) != std::string::npos) {
-                    inputParameters.device = i;
-                }
-            }
-        }
+        inputParameters.device = findLoopbackDecive();
+        
         if (inputParameters.device == paNoDevice) {
             std::cerr << "Error: No default input device.\n";
             goto error;
