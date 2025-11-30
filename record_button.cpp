@@ -19,7 +19,7 @@ Record_Button::Record_Button(
     std::shared_ptr<AudioData> pData)
     : wxPanel(parent, wxID_ANY),
     pStateCpy(pState),
-    pDataCpy(pData),
+    pAudioData(pData),
     stream(nullptr),
     m_timer(this) // Timer constructed with 'this' as the owner
 {
@@ -46,8 +46,31 @@ Record_Button::Record_Button(
     Centre();
 }
 
+void Record_Button::updateGuiRecordStarted() {
+    button->SetBitmap(stopBundle);
+    button->SetToolTip("Stop Recording");
+
+    wxWindow* top = wxGetTopLevelParent(this);
+    if (top)
+    {
+        MainWindow* mw = dynamic_cast<MainWindow*>(top);
+        if (mw)
+        {
+            mw->playButton->button->Enable(false);
+            wxCommandEvent e(myEVT_RECORD_STARTED);
+            wxPostEvent(mw->playButton, e);
+            wxPostEvent(mw->wavePanel, e);
+        }
+        else
+        {
+            // not actually MainWindow
+            wxMessageBox("top is not a MainWindow");
+        }
+    }
+}
+
 // The same existing OnRecord(...) but with added timer logic
-void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
+void Record_Button::OnRecord(wxCommandEvent& e)
 {
     PaError err = paNoError;
     int totalFrames;
@@ -60,46 +83,28 @@ void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
     const std::string loopback_str = "[Loopback]";
     PaStreamParameters inputParameters = {};
 
+    std::cout << "Record Button id: " << e.GetId() << std::endl;
+
     // If currently Idle, user pressed "Record" -> Start recording
     if (pStateCpy->state == Idle)
     {
-        button->SetBitmap(stopBundle);
-        button->SetToolTip("Stop Recording");
         pStateCpy->transition(Recording);
-
-        wxWindow* top = wxGetTopLevelParent(this);
-        if (top)
-        {
-            MainWindow* mw = dynamic_cast<MainWindow*>(top);
-            if (mw)
-            {
-                mw->playButton->button->Enable(false);
-                wxCommandEvent event(myEVT_RECORD_STARTED);
-                wxPostEvent(mw->playButton, event);
-                wxPostEvent(mw->wavePanel, event);
-            }
-            else
-            {
-                // not actually MainWindow
-                wxMessageBox("top is not a MainWindow");
-            }
-        }
+        updateGuiRecordStarted();
         
-
         /* Set parameters */
-        pDataCpy->maxSamplesBuffer = totalFrames = NUM_SECONDS * SAMPLE_RATE;
-        pDataCpy->currentSampleIndex = 0;
+        pAudioData->maxSamplesBuffer = totalFrames = NUM_SECONDS * SAMPLE_RATE;
+        pAudioData->currentSampleIndex = 0;
         numSamples = totalFrames * NUM_CHANNELS;
         numBytes = numSamples * sizeof(SAMPLE);
 
         /* Init recorded samples buffer */
-        pDataCpy->recorded = (SAMPLE*)std::malloc(numBytes);
-        if (pDataCpy->recorded == NULL)
+        pAudioData->recorded = (SAMPLE*)std::malloc(numBytes);
+        if (pAudioData->recorded == NULL)
         {
             std::cerr << "Could not allocate record array.\n";
             goto error;
         }
-        std::memset(pDataCpy->recorded, 0, numBytes);
+        std::memset(pAudioData->recorded, 0, numBytes);
 
         err = Pa_Initialize();
         if (err != paNoError) goto error;
@@ -136,7 +141,7 @@ void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
             FRAMES_PER_BUFFER,
             paClipOff,
             recordCallback,
-            pDataCpy.get()
+            pAudioData.get()
         );
         if (err != paNoError) goto error;
 
@@ -176,9 +181,9 @@ void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
                 std::cerr << "Pa_CloseStream error: " << Pa_GetErrorText(err) << std::endl;
             }
             else {
-                // We only recorded up to pDataCpy->currentSampleIndex
+                // We only recorded up to pAudioData->currentSampleIndex
                 // Adjust maxFrameIndex so playback doesn’t exceed that
-                pDataCpy->totalSamplesRecorded = pDataCpy->currentSampleIndex;
+                pAudioData->totalSamplesRecorded = pAudioData->currentSampleIndex;
             }
             stream = nullptr;
         }
@@ -191,8 +196,8 @@ void Record_Button::OnRecord(wxCommandEvent& WXUNUSED(event))
             if (mw)
             {
                 mw->playButton->button->Enable(true);
-                wxCommandEvent event(myEVT_RECORD_STOPPED);
-                wxPostEvent(mw, event);
+                wxCommandEvent e(myEVT_RECORD_STOPPED);
+                wxPostEvent(mw, e);
             }
             else
             {

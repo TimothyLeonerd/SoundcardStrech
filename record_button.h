@@ -18,7 +18,7 @@ public:
 
 private:
     std::shared_ptr<State> pStateCpy;
-    std::shared_ptr<AudioData> pDataCpy;
+    std::shared_ptr<AudioData> pAudioData;
 
     PaStream* stream;
 
@@ -30,4 +30,7 @@ private:
 
     // Needed for wxWidgets event routing
     wxDECLARE_EVENT_TABLE();
+
+    // helper functions
+    void updateGuiRecordStarted();
 };

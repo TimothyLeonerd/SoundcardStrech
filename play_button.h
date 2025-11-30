@@ -26,7 +26,7 @@ private:
     // We'll store references to the shared State and AudioData,
     // plus a PortAudio stream pointer and a timer for polling.
     std::shared_ptr<State> pStateCpy;
-    std::shared_ptr<AudioData> pDataCpy;
+    std::shared_ptr<AudioData> pAudioData;
 
     PaStream* stream = nullptr;
     wxTimer m_timer;

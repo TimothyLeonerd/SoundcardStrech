@@ -41,7 +41,8 @@ typedef unsigned char SAMPLE;
 #endif
 
 // utils.h
-struct AudioData {
+class AudioData {
+public:
     int lastSampleIndex = 0;
     int currentSampleIndex = 0;        // current read/write sample
     int totalSamplesRecorded = 0;      // total samples recorded

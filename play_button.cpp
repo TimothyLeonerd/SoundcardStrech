@@ -18,7 +18,7 @@ Play_Button::Play_Button(
     std::shared_ptr<AudioData> pData)
     : wxPanel(parent, wxID_ANY),
     pStateCpy(pState),
-    pDataCpy(pData),
+    pAudioData(pData),
     stream(nullptr),
     m_timer(this) // Timer owned by this frame
 {
@@ -56,7 +56,7 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
     PaError err;
 
     // If buffer allocated or no samples recorded
-    if (pDataCpy->totalSamplesRecorded == 0 || pDataCpy->maxSamplesBuffer == 0) {
+    if (pAudioData->totalSamplesRecorded == 0 || pAudioData->maxSamplesBuffer == 0) {
         wxMessageBox("No recorded data to play!", "Info");
         return;
     }
@@ -83,7 +83,7 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
 
         // 3) Prepare to pass entire recorded buffer as a single chunk
         //    i.e., one "study" pass, then one "process" pass, then retrieve.
-        int frames = pDataCpy->totalSamplesRecorded; // how many frames we actually recorded
+        int frames = pAudioData->totalSamplesRecorded; // how many frames we actually recorded
         int channels = NUM_CHANNELS;
 
         // Interleaved input => must "de-interleave" for Rubber Band's offline calls
@@ -93,7 +93,7 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
         for (int f = 0; f < frames; f++) {
             for (int c = 0; c < channels; c++) {
                 // interleaved index = f*channels + c
-                inputPlanar[c][f] = pDataCpy->recorded[f * channels + c];
+                inputPlanar[c][f] = pAudioData->recorded[f * channels + c];
             }
         }
 
@@ -120,31 +120,31 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
         }
 
         // read them
-        pDataCpy->totalSamplesRecorded = stretcher.retrieve((float* const*)outPtrs.data(), available);
+        pAudioData->totalSamplesRecorded = stretcher.retrieve((float* const*)outPtrs.data(), available);
 
-        // 7) Re-interleave them back into pDataCpy->recorded
+        // 7) Re-interleave them back into pAudioData->recorded
         //    so the existing callback can just play them
         //    We'll free the old pointer and allocate a new sized buffer
-        free(pDataCpy->recorded);
-        pDataCpy->recorded = (SAMPLE*)malloc(pDataCpy->totalSamplesRecorded * channels * sizeof(SAMPLE));
-        if (!pDataCpy->recorded) {
+        free(pAudioData->recorded);
+        pAudioData->recorded = (SAMPLE*)malloc(pAudioData->totalSamplesRecorded * channels * sizeof(SAMPLE));
+        if (!pAudioData->recorded) {
             wxMessageBox("Allocation failed for stretched buffer!", "Error");
             return;
         }
 
         // re-interleave
-        for (int f = 0; f < pDataCpy->totalSamplesRecorded; f++) {
+        for (int f = 0; f < pAudioData->totalSamplesRecorded; f++) {
             for (int c = 0; c < channels; c++) {
-                pDataCpy->recorded[f * channels + c] = outputPlanar[c][f];
+                pAudioData->recorded[f * channels + c] = outputPlanar[c][f];
             }
         }
 
         // update currentSampleIndex / maxFrameIndex
-        pDataCpy->currentSampleIndex = 0;         // will start from beginning
+        pAudioData->currentSampleIndex = 0;         // will start from beginning
     }
 
-    // At this point, pDataCpy->recorded holds the new time-stretched data
-    // pDataCpy->maxFrameIndex is updated to the new length
+    // At this point, pAudioData->recorded holds the new time-stretched data
+    // pAudioData->maxFrameIndex is updated to the new length
 
     // Proceed with your existing playback code (Case 1)...
 
@@ -171,7 +171,7 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
         button->SetToolTip("Pause");
 
         // Reset to start of newly stretched data
-        pDataCpy->currentSampleIndex = 0;
+        pAudioData->currentSampleIndex = 0;
 
         err = Pa_Initialize();
         if (err != paNoError) {
@@ -201,7 +201,7 @@ void Play_Button::OnPlay(wxCommandEvent& WXUNUSED(event))
             FRAMES_PER_BUFFER,
             paClipOff,
             playCallback,
-            pDataCpy.get()
+            pAudioData.get()
         );
         if (err != paNoError) goto error;
 
