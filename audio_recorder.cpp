@@ -125,9 +125,19 @@ PaError AudioRecorder::stop()
 
     if (audioData->stream) {
         err = Pa_CloseStream(audioData->stream);
+
+        if (err == paNoError) {
+            // Only trust currentSampleIndex if the stream closed cleanly
+            audioData->totalSamplesRecorded = audioData->currentSampleIndex;
+        }
+
         audioData->stream = nullptr;
     }
 
-    err = Pa_Terminate();
+    PaError termErr = Pa_Terminate();
+    if (err == paNoError && termErr != paNoError) {
+        err = termErr;
+    }
+
     return err;
 }
