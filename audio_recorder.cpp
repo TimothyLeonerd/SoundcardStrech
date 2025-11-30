@@ -113,6 +113,9 @@ PaError AudioRecorder::start() {
     err = Pa_StartStream(audioData->stream);
     if (err != paNoError) return err;
 
+    // Reset buffer index
+    audioData->currentSampleIndex = 0;
+
     return paNoError;
 }
 
