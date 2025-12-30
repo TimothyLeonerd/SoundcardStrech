@@ -4,7 +4,7 @@
 #include "playback.h" // For playCallback
 #include "portaudio.h"
 #include "state.h"
-#include "RubberBandStretcher.h"
+#include <rubberband/RubberBandStretcher.h>
 #include "main_window.h"
 #include "wave_panel.h"
 #include "my_events.h"
