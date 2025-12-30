@@ -17,11 +17,11 @@ if (MSVC)
 endif()
 
 # ---- Dependencies ----
-# Assumption: you will use vcpkg and configure CMake with its toolchain, e.g.:
+# Assumptions: using vcpkg and configure CMake with its toolchain, e.g.:
 #
 #   cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
 #
-# and have installed:
+# Installed via:
 #   vcpkg install wxwidgets portaudio rubberband
 
 # 1) wxWidgets (vcpkg provides a CMake config with wx::core, wx::base targets)
@@ -92,10 +92,10 @@ add_executable(Soundcard_wav WIN32
     ${SC_HEADERS}
 )
 
-# Where headers live (your .h are in the same folder as the .cpp right now)
+# Where headers live
 target_include_directories(Soundcard_wav
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/Soundcard_wav
+        ${CMAKE_CURRENT_SOURCE_DIR}
         ${PORTAUDIO_INCLUDE_DIR}
         ${RUBBERBAND_INCLUDE_DIR}
 )
