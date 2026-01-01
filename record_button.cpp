@@ -24,7 +24,7 @@ Record_Button::Record_Button(
     const int ID_RECORD_BUTTON = wxNewId();
     button = new wxButton(this, ID_RECORD_BUTTON, wxT(""));
 
-    recordBundle = wxBitmapBundle::FromSVGFile("icons/record.svg", wxSize(24, 24));
+    recordBundle = wxBitmapBundle::FromSVGFile((std::string)ICONS_DIR + "/record.svg", wxSize(24, 24));
     if (recordBundle.IsOk()) { button->SetBitmap(recordBundle); button->SetToolTip("Record"); }
 
     auto* s = new wxBoxSizer(wxHORIZONTAL);
@@ -33,7 +33,7 @@ Record_Button::Record_Button(
 
     recorder = std::make_unique<AudioRecorder>(pAudioData.get());
 
-    stopBundle = wxBitmapBundle::FromSVGFile("icons/stop.svg", wxSize(24, 24));
+    stopBundle = wxBitmapBundle::FromSVGFile((std::string)ICONS_DIR + "/stop.svg", wxSize(24, 24));
 
     // OnRecord(...) runs when user clicks button
     button->Bind(wxEVT_BUTTON, &Record_Button::OnRecord, this);

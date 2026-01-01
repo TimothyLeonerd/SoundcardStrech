@@ -8,6 +8,8 @@
 #include "main_window.h"
 #include "wave_panel.h"
 #include "my_events.h"
+#include <string>
+#include <filesystem>
 
 wxBEGIN_EVENT_TABLE(Play_Button, wxPanel)
 wxEND_EVENT_TABLE()
@@ -26,10 +28,11 @@ Play_Button::Play_Button(
     int ID_PLAY_BUTTON = wxNewId();
     button = new wxButton(this, ID_PLAY_BUTTON, wxT(""));
 
-    playBundle = wxBitmapBundle::FromSVGFile("icons/play_arrow.svg", wxSize(24, 24));
+    playBundle = wxBitmapBundle::FromSVGFile((std::string)ICONS_DIR + "/play_arrow.svg", wxSize(24, 24));
+
     if (playBundle.IsOk()) { button->SetBitmap(playBundle); button->SetToolTip("Play"); }
 
-    pauseBundle = wxBitmapBundle::FromSVGFile("icons/pause.svg", wxSize(24, 24));
+    pauseBundle = wxBitmapBundle::FromSVGFile((std::string)ICONS_DIR + "/pause.svg", wxSize(24, 24));
 
     auto* s = new wxBoxSizer(wxHORIZONTAL);
     s->Add(button, 0, 0, 0);

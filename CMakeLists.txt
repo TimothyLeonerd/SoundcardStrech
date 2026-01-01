@@ -113,3 +113,15 @@ target_link_libraries(Soundcard_wav
 set_target_properties(Soundcard_wav PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+
+# Copy icons folder next to the built .exe after each build
+add_custom_command(TARGET Soundcard_wav POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/icons"
+        "$<TARGET_FILE_DIR:Soundcard_wav>/icons"
+)
+
+# 1) Preprocessor macro ICONS_DIR that points to the icons folder next to the .exe
+target_compile_definitions(Soundcard_wav PRIVATE
+    ICONS_DIR="$<TARGET_FILE_DIR:Soundcard_wav>/icons"
+)
