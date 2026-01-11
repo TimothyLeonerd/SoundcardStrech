@@ -1,5 +1,6 @@
 #pragma once
 #include "portaudio.h"
+#include <memory>
 
 #define RECORD_STR "Record"
 #define RECORDING_STR "Recording"

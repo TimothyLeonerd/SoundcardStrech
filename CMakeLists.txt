@@ -1,127 +1,136 @@
-cmake_minimum_required(VERSION 3.20)
-
-project(Soundcard_wav
-    VERSION 0.1.0
-    LANGUAGES CXX
-)
-
-# ---- Global C++ options ----
+cmake_minimum_required(VERSION 3.24)
+project(Soundcard_wav LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Helpful on MSVC to get better warnings, etc.
-if (MSVC)
-    add_compile_options(/permissive- /W4)
-endif()
+include(ExternalProject)
 
-# ---- Dependencies ----
-# Assumptions: using vcpkg and configure CMake with its toolchain, e.g.:
-#
-#   cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-#
-# Installed via:
-#   vcpkg install wxwidgets portaudio rubberband
-
-# 1) wxWidgets (vcpkg provides a CMake config with wx::core, wx::base targets)
-find_package(wxWidgets CONFIG REQUIRED)
-
-# 2) PortAudio (we don’t assume a specific imported target name, just find headers + lib)
-find_path(PORTAUDIO_INCLUDE_DIR
-    NAMES portaudio.h
-    PATH_SUFFIXES include
-)
-
-find_library(PORTAUDIO_LIBRARY
-    NAMES portaudio portaudio_static
-)
-
-if (NOT PORTAUDIO_INCLUDE_DIR OR NOT PORTAUDIO_LIBRARY)
-    message(FATAL_ERROR "PortAudio not found. Make sure it is installed (e.g. via vcpkg) and visible to CMake.")
-endif()
-
-# 3) Rubber Band library
-find_path(RUBBERBAND_INCLUDE_DIR
-    NAMES rubberband/RubberBandStretcher.h
-    PATH_SUFFIXES include
-)
-
-find_library(RUBBERBAND_LIBRARY
-    NAMES rubberband
-)
-
-if (NOT RUBBERBAND_INCLUDE_DIR OR NOT RUBBERBAND_LIBRARY)
-    message(FATAL_ERROR "Rubber Band library not found. Make sure it is installed (e.g. via vcpkg) and visible to CMake.")
-endif()
-
-# ---- Sources ----
-
+# ------------------------------------------------------------
+# Sources (from your repo)
+#   NOTE: paex_record.cpp and sawtooth_playback.cpp also have main(),
+#   so we do NOT include them in this GUI build.
+# ------------------------------------------------------------
 set(SC_SOURCES
-    wx_test.cpp
-    main_window.cpp
-    my_events.cpp
-    audio_recorder.cpp
-    paex_record.cpp
-    playback.cpp
-    play_button.cpp
-    record_button.cpp
-    sawtooth_playback.cpp
-    state.cpp
-    utils.cpp
-    wave_panel.cpp
+        audio_recorder.cpp
+        main_window.cpp
+        my_events.cpp
+        playback.cpp
+        play_button.cpp
+        record_button.cpp
+        state.cpp
+        utils.cpp
+        wave_panel.cpp
+        wx_test.cpp
 )
 
 set(SC_HEADERS
-    main_window.h
-    my_events.h
-    audio_recorder.h
-    playback.h
-    play_button.h
-    record_button.h
-    state.h
-    utils.h
-    wave_panel.h
+        audio_recorder.h
+        main_window.h
+        my_events.h
+        playback.h
+        play_button.h
+        record_button.h
+        state.h
+        utils.h
+        wave_panel.h
 )
 
-# ---- Executable ----
-# WIN32: build as a GUI app on Windows (no default console window).
-# You explicitly create a console in SetupConsole(), so this is fine.
+# ------------------------------------------------------------
+# wxWidgets (build from source, install into build dir)
+# ------------------------------------------------------------
+set(WX_INSTALL_DIR "${CMAKE_BINARY_DIR}/wx-install")
+set(WX_LIB_DIR     "${WX_INSTALL_DIR}/lib/gcc_x64_lib")
+set(WX_SETUP_DIR   "${WX_LIB_DIR}/mswu")
+set(WX_INC_DIR     "${WX_INSTALL_DIR}/include")
+
+ExternalProject_Add(wxWidgets
+        GIT_REPOSITORY https://github.com/wxWidgets/wxWidgets.git
+        GIT_TAG v3.2.9
+        PREFIX "${CMAKE_BINARY_DIR}/wxWidgets"
+        SOURCE_DIR "${CMAKE_BINARY_DIR}/wxWidgets/src/wxWidgets"
+        BINARY_DIR "${CMAKE_BINARY_DIR}/wxWidgets/src/wxWidgets-build"
+        CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX=${WX_INSTALL_DIR}
+        -DCMAKE_BUILD_TYPE=Release
+        -DwxBUILD_SHARED=OFF
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        -G Ninja
+        BUILD_COMMAND ${CMAKE_COMMAND} --build . --target install
+        UPDATE_DISCONNECTED 1
+        # Critical for Ninja: tell it these files will be produced by wxWidgets target
+        BUILD_BYPRODUCTS
+        "${WX_LIB_DIR}/wxmsw32u_core.a"
+        "${WX_LIB_DIR}/wxbase32u.a"
+        "${WX_LIB_DIR}/wxmsw32u_adv.a"
+        "${WX_LIB_DIR}/wxpng.a"
+        "${WX_LIB_DIR}/wxzlib.a"
+)
+
+set(WINDOWS_LIBS
+        comctl32
+        shlwapi
+        uxtheme
+        oleacc
+        version
+)
+
+add_library(wx_core_lib INTERFACE)
+target_link_libraries(wx_core_lib INTERFACE
+        "${WX_LIB_DIR}/wxmsw32u_core.a"
+        "${WX_LIB_DIR}/wxbase32u.a"
+        "${WX_LIB_DIR}/wxmsw32u_adv.a"
+        "${WX_LIB_DIR}/wxpng.a"
+        "${WX_LIB_DIR}/wxzlib.a"
+        ${WINDOWS_LIBS}
+)
+
+# ------------------------------------------------------------
+# rubberband + portaudio (via pkg-config from MSYS2)
+# ------------------------------------------------------------
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(RUBBERBAND REQUIRED IMPORTED_TARGET rubberband)
+pkg_check_modules(PORTAUDIO  REQUIRED IMPORTED_TARGET portaudio-2.0)
+
+# ------------------------------------------------------------
+# Executable
+# ------------------------------------------------------------
 add_executable(Soundcard_wav WIN32
-    ${SC_SOURCES}
-    ${SC_HEADERS}
+        ${SC_SOURCES}
+        ${SC_HEADERS}
 )
 
-# Where headers live
-target_include_directories(Soundcard_wav
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${PORTAUDIO_INCLUDE_DIR}
-        ${RUBBERBAND_INCLUDE_DIR}
+target_include_directories(Soundcard_wav PRIVATE
+        "${WX_INC_DIR}"
+        "${WX_SETUP_DIR}"
 )
 
-# Link everything
-target_link_libraries(Soundcard_wav
-    PRIVATE
-        wx::core
-        wx::base
-        ${PORTAUDIO_LIBRARY}
-        ${RUBBERBAND_LIBRARY}
+target_link_libraries(Soundcard_wav PRIVATE
+        wx_core_lib
+        PkgConfig::RUBBERBAND
+        PkgConfig::PORTAUDIO
 )
 
-# Optional but nice: put built binary in build/bin
+target_compile_options(Soundcard_wav PRIVATE
+        -Wall -Wextra -Wpedantic
+)
+
+# Make sure wxWidgets builds before linking the exe
+add_dependencies(Soundcard_wav wxWidgets)
+
+# Run/debug from repo root (so relative paths work)
 set_target_properties(Soundcard_wav PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
 
-# Copy icons folder next to the built .exe after each build
+# Copy icons next to exe
 add_custom_command(TARGET Soundcard_wav POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/icons"
         "$<TARGET_FILE_DIR:Soundcard_wav>/icons"
 )
 
-# 1) Preprocessor macro ICONS_DIR that points to the icons folder next to the .exe
 target_compile_definitions(Soundcard_wav PRIVATE
-    ICONS_DIR="$<TARGET_FILE_DIR:Soundcard_wav>/icons"
+        ICONS_DIR="$<TARGET_FILE_DIR:Soundcard_wav>/icons"
 )
