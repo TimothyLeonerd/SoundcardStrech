@@ -83,7 +83,7 @@ echo [5/5] FINAL STEPS:
 echo 1. Open CLion.
 echo 2. Go to 'File ^| Settings ^| Build, Execution, Deployment ^| Toolchains'.
 echo 3. Click '+' and select 'MinGW'.
-echo 4. Set the 'Toolchain path' to: %MSYS2_PATH%\mingw64
+echo 4. Set 'Toolset' to: %MSYS2_PATH%\mingw64
 echo 5. CMake, GCC, and GDB should be automatically detected.
 echo 6. Go to 'Settings ^| Build, Execution, Deployment ^| CMake' and ensure the new toolchain is selected.
 echo 7. Load project and click 'Build'.
